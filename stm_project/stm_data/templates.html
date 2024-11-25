@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Real-Time Sensor Data</title>
+</head>
+<body>
+    <h1>Real-Time Sensor Data</h1>
+    <div id="sensor-data">
+        <p>Temperature: <span id="temperature"></span></p>
+        <p>Motion: <span id="motion"></span></p>
+        <p>Light Intensity: <span id="light-intensity"></span></p>
+        <p>Curtains Drawn: <span id="curtains-drawn"></span></p>
+        <p>LCD Message: <span id="lcd-message"></span></p>
+    </div>
+    <script>
+        const socket = new WebSocket('ws://127.0.0.1:8000/ws/sensor-data/');
+
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            document.getElementById('temperature').textContent = data.temperature;
+            document.getElementById('motion').textContent = data.motion === '1' ? 'Yes' : 'No';
+            document.getElementById('light-intensity').textContent = data.light_intensity;
+            document.getElementById('curtains-drawn').textContent = data.curtains_drawn === '1' ? 'Yes' : 'No';
+            document.getElementById('lcd-message').textContent = data.lcd_message;
+        };
+    </script>
+</body>
+</html>
