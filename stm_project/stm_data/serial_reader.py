@@ -1,7 +1,7 @@
 import serial
 from .models import SensorData
 
-def read_serial_data(port='/dev/ttyUSB0', baudrate=9600):
+def read_serial_data(port='COM4', baudrate=115200):
     try:
         ser = serial.Serial(port, baudrate, timeout=1)
         while True:

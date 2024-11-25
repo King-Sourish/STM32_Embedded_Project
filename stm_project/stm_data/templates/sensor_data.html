@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Data Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        .dashboard {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .sensor-card {
+            background: #f5f5f5;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart-container {
+            margin-top: 20px;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1>STM32 Sensor Dashboard</h1>
+        
+        <div class="sensor-card">
+            <h2>Temperature</h2>
+            <p id="temperature">--</p>
+        </div>
+        
+        <div class="sensor-card">
+            <h2>Motion Status</h2>
+            <p id="motion">--</p>
+        </div>
+        
+        <div class="sensor-card">
+            <h2>Light Intensity</h2>
+            <p id="light_intensity">--</p>
+        </div>
+        
+        <div class="sensor-card">
+            <h2>Curtains Status</h2>
+            <p id="curtains_drawn">--</p>
+        </div>
+        
+        <div class="sensor-card">
+            <h2>LCD Message</h2>
+            <p id="lcd_message">--</p>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="temperatureChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Initialize temperature chart
+        const ctx = document.getElementById('temperatureChart').getContext('2d');
+        const temperatureData = {
+            labels: [],
+            datasets: [{
+                label: 'Temperature',
+                data: [],
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        };
+        const temperatureChart = new Chart(ctx, {
+            type: 'line',
+            data: temperatureData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // WebSocket Connection
+        function connectWebSocket() {
+            const ws = new WebSocket('ws://' + window.location.host + '/ws/sensor-data/');
+            
+            ws.onopen = function() {
+                console.log('WebSocket connected');
+            };
+            
+            ws.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                
+                // Update dashboard values
+                document.getElementById('temperature').textContent = data.temperature + '°C';
+                document.getElementById('motion').textContent = data.motion ? 'Motion Detected' : 'No Motion';
+                document.getElementById('light_intensity').textContent = data.light_intensity + ' lux';
+                document.getElementById('curtains_drawn').textContent = data.curtains_drawn ? 'Drawn' : 'Open';
+                document.getElementById('lcd_message').textContent = data.lcd_message;
+
+                // Update temperature chart
+                const timestamp = new Date().toLocaleTimeString();
+                temperatureData.labels.push(timestamp);
+                temperatureData.datasets[0].data.push(parseFloat(data.temperature));
+                
+                // Keep only last 10 data points
+                if (temperatureData.labels.length > 10) {
+                    temperatureData.labels.shift();
+                    temperatureData.datasets[0].data.shift();
+                }
+                
+                temperatureChart.update();
+            };
+            
+            ws.onclose = function() {
+                console.log('WebSocket disconnected. Reconnecting in 5 seconds...');
+                setTimeout(connectWebSocket, 5000);
+            };
+
+            ws.onerror = function(err) {
+                console.error('WebSocket error:', err);
+                ws.close();
+            };
+        }
+
+        // Start WebSocket connection
+        connectWebSocket();
+    </script>
+</body>
+</html>
