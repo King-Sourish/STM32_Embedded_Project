@@ -3,32 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sensor Data Dashboard</title>
+    <title>Sensor Data Simulator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
     <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background-color: #f4f4f4; 
+        }
         .dashboard {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            font-family: Arial, sans-serif;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
         }
         .sensor-card {
-            background: #f5f5f5;
-            padding: 15px;
-            margin: 10px 0;
+            background: white;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
         }
         .chart-container {
-            margin-top: 20px;
-            height: 300px;
+            grid-column: 1 / -1;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
     </style>
 </head>
 <body>
+    <h1 style="text-align: center;">STM32 Sensor Data Simulator</h1>
+    
     <div class="dashboard">
-        <h1>STM32 Sensor Dashboard</h1>
-        
         <div class="sensor-card">
             <h2>Temperature</h2>
             <p id="temperature">--</p>
@@ -65,10 +74,11 @@
         const temperatureData = {
             labels: [],
             datasets: [{
-                label: 'Temperature',
+                label: 'Temperature (°C)',
                 data: [],
                 borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.4
             }]
         };
         const temperatureChart = new Chart(ctx, {
@@ -76,60 +86,64 @@
             data: temperatureData,
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
                 scales: {
                     y: {
-                        beginAtZero: true
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Temperature (°C)'
+                        }
                     }
                 }
             }
         });
 
-        // WebSocket Connection
-        function connectWebSocket() {
-            const ws = new WebSocket('ws://' + window.location.host + '/ws/sensor-data/');
-            
-            ws.onopen = function() {
-                console.log('WebSocket connected');
-            };
-            
-            ws.onmessage = function(e) {
-                const data = JSON.parse(e.data);
-                
-                // Update dashboard values
-                document.getElementById('temperature').textContent = data.temperature + '°C';
-                document.getElementById('motion').textContent = data.motion ? 'Motion Detected' : 'No Motion';
-                document.getElementById('light_intensity').textContent = data.light_intensity + ' lux';
-                document.getElementById('curtains_drawn').textContent = data.curtains_drawn ? 'Drawn' : 'Open';
-                document.getElementById('lcd_message').textContent = data.lcd_message;
+        // Simulate sensor data
+        function generateSensorData() {
+            // Realistic temperature variation
+            const baseTemp = 22;
+            const tempVariation = Math.random() * 5 - 2.5; // +/- 2.5°C
+            const temperature = (baseTemp + tempVariation).toFixed(1);
 
-                // Update temperature chart
-                const timestamp = new Date().toLocaleTimeString();
-                temperatureData.labels.push(timestamp);
-                temperatureData.datasets[0].data.push(parseFloat(data.temperature));
-                
-                // Keep only last 10 data points
-                if (temperatureData.labels.length > 10) {
-                    temperatureData.labels.shift();
-                    temperatureData.datasets[0].data.shift();
-                }
-                
-                temperatureChart.update();
-            };
-            
-            ws.onclose = function() {
-                console.log('WebSocket disconnected. Reconnecting in 5 seconds...');
-                setTimeout(connectWebSocket, 5000);
-            };
+            // Simulate other sensors
+            const motion = Math.random() > 0.7 ? 1 : 0;
+            const lightIntensity = Math.floor(Math.random() * 1000);
+            const curtainDrawn = Math.random() > 0.5 ? 1 : 0;
+            const messages = [
+                'System Normal', 
+                'Data Collected', 
+                'Monitoring Active', 
+                'No Alerts', 
+                'Sensor Check OK'
+            ];
+            const lcdMessage = messages[Math.floor(Math.random() * messages.length)];
 
-            ws.onerror = function(err) {
-                console.error('WebSocket error:', err);
-                ws.close();
-            };
+            // Update dashboard values
+            document.getElementById('temperature').textContent = `${temperature}°C`;
+            document.getElementById('motion').textContent = motion ? 'Motion Detected' : 'No Motion';
+            document.getElementById('light_intensity').textContent = `${lightIntensity} lux`;
+            document.getElementById('curtains_drawn').textContent = curtainDrawn ? 'Drawn' : 'Open';
+            document.getElementById('lcd_message').textContent = lcdMessage;
+
+            // Update temperature chart
+            const timestamp = new Date().toLocaleTimeString();
+            temperatureData.labels.push(timestamp);
+            temperatureData.datasets[0].data.push(parseFloat(temperature));
+            
+            // Keep only last 10 data points
+            if (temperatureData.labels.length > 10) {
+                temperatureData.labels.shift();
+                temperatureData.datasets[0].data.shift();
+            }
+            
+            temperatureChart.update();
         }
 
-        // Start WebSocket connection
-        connectWebSocket();
+        // Generate data every 3 seconds
+        setInterval(generateSensorData, 3000);
+
+        // Initial data generation
+        generateSensorData();
     </script>
 </body>
 </html>
